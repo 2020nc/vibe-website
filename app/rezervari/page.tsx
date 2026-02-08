@@ -10,7 +10,7 @@
  * - Slot-uri orare pentru a alege timpul vizitei
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 
 export default function RezervarePage() {
@@ -26,6 +26,10 @@ export default function RezervarePage() {
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
   // 📅 GENERARE ZILE DISPONIBILE (următoarele 14 zile)
   const generateAvailableDates = () => {
@@ -57,6 +61,49 @@ export default function RezervarePage() {
     const months = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
 
     return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
+  };
+
+  // 📅 CALENDAR HELPERS
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const maxDate = new Date(today);
+  maxDate.setMonth(maxDate.getMonth() + 6);
+
+  const monthNames = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
+    'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
+  const dayHeaders = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
+
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    // Luni = 0, Marți = 1, ..., Duminică = 6
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset < 0) startOffset = 6;
+
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startOffset; i++) days.push(null);
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      days.push(new Date(year, month, d));
+    }
+    return days;
+  }, [calendarMonth]);
+
+  const canGoPrev = calendarMonth.getFullYear() > today.getFullYear() ||
+    (calendarMonth.getFullYear() === today.getFullYear() && calendarMonth.getMonth() > today.getMonth());
+
+  const canGoNext = calendarMonth < maxDate;
+
+  const handleCalendarSelect = (date: Date) => {
+    setSelectedDate(formatDate(date));
+    setSelectedTime('');
+  };
+
+  const navigateMonth = (direction: -1 | 1) => {
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + direction, 1));
   };
 
   // 🎯 HANDLE FORM SUBMIT
@@ -149,6 +196,7 @@ export default function RezervarePage() {
                 setSelectedTime('');
                 setFormData({ name: '', email: '', phone: '', guests: '2' });
                 setError('');
+                setCalendarMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
               }}
               className="px-8 py-4 bg-secondary hover:bg-secondary-dark text-white font-semibold rounded-full transition-all duration-300 hover:scale-105"
             >
@@ -185,6 +233,84 @@ export default function RezervarePage() {
               Selectează data
             </h2>
 
+            {/* MINI-CALENDAR */}
+            <div className="bg-white rounded-2xl border-2 border-gray-100 p-4 md:p-6 mb-6">
+              {/* Header: < Luna An > */}
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={() => navigateMonth(-1)}
+                  disabled={!canGoPrev}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <h3 className="text-lg font-bold text-foreground">
+                  {monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => navigateMonth(1)}
+                  disabled={!canGoNext}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {dayHeaders.map(d => (
+                  <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((date, i) => {
+                  if (!date) {
+                    return <div key={`empty-${i}`} />;
+                  }
+
+                  const isPast = date < today;
+                  const isTooFar = date > maxDate;
+                  const isDisabled = isPast || isTooFar;
+                  const isSelected = selectedDate === formatDate(date);
+                  const isToday = date.getTime() === today.getTime();
+
+                  return (
+                    <button
+                      key={date.getDate()}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => handleCalendarSelect(date)}
+                      className={`aspect-square rounded-lg text-sm font-semibold transition-all duration-200
+                        ${isSelected
+                          ? 'bg-primary text-white shadow-md scale-110'
+                          : isToday
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                            : isDisabled
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                      {date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Separator */}
+            <p className="text-sm text-gray-400 text-center mb-4">sau alege rapid din următoarele zile:</p>
+
+            {/* BUTOANE RAPIDE (păstrate exact cum erau) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {availableDates.map((date, index) => {
                 const dateStr = formatDate(date);

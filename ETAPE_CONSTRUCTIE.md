@@ -1377,3 +1377,632 @@ Ai construit un site web modern, profesional, cu:
 ---
 
 **Succes la curs! ☕💻**
+
+---
+
+# 📅 SĂPTĂMÂNA 3: Bază de Date & Panou Admin
+
+> **Obiectiv:** Conectăm formularul de rezervări la o bază de date reală (Supabase) și construim un panou admin pentru gestionarea rezervărilor.
+
+## Ce vei învăța în Săptămâna 3:
+- ✅ Supabase (PostgreSQL-as-a-Service) - bază de date în cloud
+- ✅ API Routes în Next.js (POST, GET, PATCH, DELETE)
+- ✅ Fetch API - comunicare frontend ↔ backend
+- ✅ CRUD complet (Create, Read, Update, Delete)
+- ✅ useMemo hook - optimizare performanță
+- ✅ Panou admin cu filtrare, căutare și acțiuni
+
+---
+
+## 🗄️ Săptămâna 3, Zi 1: Setup Supabase
+
+### **Pasul 12.1: Creează Cont Supabase**
+
+1. Mergi pe [supabase.com](https://supabase.com)
+2. Creează cont (Sign up cu GitHub)
+3. Click "New Project"
+4. Configurează:
+   - **Organization**: alege sau creează una
+   - **Name**: `vibe-caffe`
+   - **Database Password**: alege o parolă puternică
+   - **Region**: EU West (cel mai aproape de România)
+5. Așteaptă 1-2 minute până se creează
+
+### **Pasul 12.2: Creează Tabelul `rezervari`**
+
+Din Supabase Dashboard → SQL Editor → New Query:
+
+```sql
+CREATE TABLE rezervari (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  guests INTEGER NOT NULL DEFAULT 2,
+  date TEXT NOT NULL,
+  time TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Permite citire/scriere pentru utilizatori anonimi (site-ul nostru)
+ALTER TABLE rezervari ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anonymous insert" ON rezervari
+  FOR INSERT TO anon WITH CHECK (true);
+
+CREATE POLICY "Allow anonymous select" ON rezervari
+  FOR SELECT TO anon USING (true);
+
+CREATE POLICY "Allow anonymous update" ON rezervari
+  FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow anonymous delete" ON rezervari
+  FOR DELETE TO anon USING (true);
+```
+
+**Ce face fiecare parte:**
+- `GENERATED ALWAYS AS IDENTITY` = auto-increment ID
+- `DEFAULT 'pending'` = statusul inițial al fiecărei rezervări
+- `TIMESTAMPTZ` = data+ora cu timezone
+- `ROW LEVEL SECURITY` = protecție la nivel de rând
+- `POLICY` = reguli care permit operațiile CRUD
+
+### **Pasul 12.3: Obține Credentialele API**
+
+Din Supabase Dashboard → Settings → API:
+- **Project URL**: `https://xxxx.supabase.co`
+- **Anon Key** (public): `eyJhbGciOi...`
+
+### **Pasul 12.4: Instalează Supabase Client**
+
+```bash
+npm install @supabase/supabase-js
+```
+
+### **Pasul 12.5: Configurează `.env.local`**
+
+Creează fișierul `.env.local` în rădăcina proiectului:
+
+```bash
+# Supabase - Baza de date pentru rezervări
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
+
+**IMPORTANT:** `.env.local` e deja în `.gitignore` - NU se urcă pe GitHub. Fiecare dezvoltator are propriile credențiale.
+
+### **Pasul 12.6: Creează Client Supabase**
+
+Creează `lib/supabase.ts`:
+
+```typescript
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Singleton pattern - o singură instanță în toată aplicația
+let _supabase: SupabaseClient | null = null;
+
+export function getSupabase(): SupabaseClient {
+  // Dacă deja avem o instanță, o returnăm (nu creăm alta)
+  if (_supabase) return _supabase;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Verificare că env vars sunt configurate
+  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'your-supabase-url-here') {
+    throw new Error(
+      'Supabase nu este configurat. Adaugă NEXT_PUBLIC_SUPABASE_URL și NEXT_PUBLIC_SUPABASE_ANON_KEY în .env.local'
+    );
+  }
+
+  _supabase = createClient(supabaseUrl, supabaseAnonKey);
+  return _supabase;
+}
+```
+
+**Concepte:**
+- **Singleton pattern** = creezi o singură instanță și o refolosești
+- **Lazy initialization** = clientul se creează doar când e necesar (nu la build time)
+- **Environment variables** = configurare separată de cod (chei API, URL-uri)
+- `NEXT_PUBLIC_` prefix = variabila e disponibilă și pe frontend
+
+---
+
+## 🔌 Săptămâna 3, Zi 2: API Routes (CRUD)
+
+### **Pasul 13.1: Creează API Route**
+
+Creează `app/api/rezervari/route.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/supabase';
+
+// POST = Crează o rezervare nouă
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, email, phone, guests, date, time } = body;
+
+    // Validare câmpuri obligatorii
+    if (!name || !email || !phone || !guests || !date || !time) {
+      return NextResponse.json(
+        { error: 'Toate câmpurile sunt obligatorii.' },
+        { status: 400 }
+      );
+    }
+
+    // Salvare în Supabase
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('rezervari')
+      .insert([{ name, email, phone, guests: Number(guests), date, time }])
+      .select();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Eroare la salvarea rezervării.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: 'Rezervare salvată cu succes!', data },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { error: 'Eroare de server.' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET = Citește toate rezervările (pentru panoul admin)
+export async function GET() {
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('rezervari')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'Eroare la citirea rezervărilor.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ data }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Eroare de server.' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH = Actualizează statusul unei rezervări
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, status: newStatus } = body;
+
+    if (!id || !newStatus || !['confirmed', 'rejected', 'pending'].includes(newStatus)) {
+      return NextResponse.json(
+        { error: 'ID și status valid sunt obligatorii.' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('rezervari')
+      .update({ status: newStatus })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'Eroare la actualizarea rezervării.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ data }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Eroare de server.' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE = Șterge o rezervare
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID-ul rezervării este obligatoriu.' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from('rezervari')
+      .delete()
+      .eq('id', Number(id));
+
+    if (error) {
+      return NextResponse.json(
+        { error: 'Eroare la ștergerea rezervării.' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ message: 'Rezervare ștearsă.' }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Eroare de server.' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Concepte CRUD:**
+
+| Metoda HTTP | Operație | Ce face |
+|-------------|----------|---------|
+| `POST` | Create | Creează o rezervare nouă |
+| `GET` | Read | Citește toate rezervările |
+| `PATCH` | Update | Actualizează statusul |
+| `DELETE` | Delete | Șterge o rezervare |
+
+**Alte concepte:**
+- `NextRequest` / `NextResponse` = tipuri Next.js pentru request/response
+- `request.json()` = citește body-ul request-ului ca JSON
+- `searchParams.get('id')` = citește parametri din URL (`?id=5`)
+- `.from('rezervari')` = selectează tabelul din Supabase
+- `.insert()`, `.select()`, `.update()`, `.delete()` = operații CRUD
+- `.eq('id', id)` = filtru WHERE id = valoare
+- `.order('created_at', { ascending: false })` = sortare descrescătoare
+
+---
+
+## 📝 Săptămâna 3, Zi 2-3: Conectare Formular la API
+
+### **Pasul 14.1: Modifică `handleSubmit` în `app/rezervari/page.tsx`**
+
+Înlocuiește `console.log` cu un `fetch` real:
+
+```typescript
+// ÎNAINTE (Săptămâna 2):
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  console.log('Rezervare:', { date: selectedDate, time: selectedTime, ...formData });
+  setSubmitted(true);
+};
+
+// DUPĂ (Săptămâna 3):
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setError('');
+
+  try {
+    const response = await fetch('/api/rezervari', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: selectedDate,
+        time: selectedTime,
+        ...formData,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Eroare la trimiterea rezervării.');
+    }
+
+    setSubmitted(true);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Eroare la trimitere.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+**Concepte noi:**
+- `async/await` = gestionare cod asincron (promisiuni)
+- `fetch()` = funcție nativă pentru HTTP requests
+- `method: 'POST'` = tipul request-ului
+- `headers: { 'Content-Type': 'application/json' }` = trimitem JSON
+- `JSON.stringify()` = transformă obiect → string JSON
+- `try/catch/finally` = gestionare erori:
+  - `try` = încearcă codul
+  - `catch` = dacă eșuează, prinde eroarea
+  - `finally` = se execută mereu (reface loading state)
+
+### **Pasul 14.2: Adaugă State-uri Noi**
+
+Adaugă lângă celelalte state-uri existente:
+
+```typescript
+const [isLoading, setIsLoading] = useState(false);
+const [error, setError] = useState<string>('');
+```
+
+### **Pasul 14.3: Afișează Erori și Loading**
+
+În formular, adaugă înainte de butonul Submit:
+
+```tsx
+{/* ERROR MESSAGE */}
+{error && (
+  <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-center">
+    {error}
+  </div>
+)}
+```
+
+La butonul Submit, adaugă `disabled` și text dinamic:
+
+```tsx
+<button
+  type="submit"
+  disabled={isLoading}
+  className="... disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  {isLoading ? 'Se trimite...' : 'Confirmă rezervarea'}
+</button>
+```
+
+### **Pasul 14.4: Testează End-to-End**
+
+1. Pornește dev server: `npm run dev`
+2. Mergi pe `localhost:3000/rezervari`
+3. Completează formularul și trimite
+4. Verifică în Supabase Dashboard → Table Editor → rezervari
+5. Rezervarea ar trebui să apară cu status `pending`
+
+---
+
+## 📊 Săptămâna 3, Zi 3-4: Panoul Admin
+
+### **Pasul 15.1: Creează `app/admin/page.tsx`**
+
+Aceasta e cea mai complexă componentă din proiect. O descompunem:
+
+#### Structura fișierului:
+
+```
+app/admin/page.tsx
+├── Interface TypeScript (Rezervare, FilterType)
+├── STATUS_CONFIG (configurare badge-uri)
+├── AdminPage component
+│   ├── State management (5 state-uri)
+│   ├── fetchRezervari() - încarcă date
+│   ├── updateStatus() - confirmă/respinge
+│   ├── deleteRezervare() - șterge
+│   ├── useMemo: filtered - filtrare + căutare
+│   ├── useMemo: counts - numărare per status
+│   ├── Loading state
+│   ├── Error state
+│   ├── StatusBadge component
+│   ├── ActionButtons component
+│   └── Return JSX
+│       ├── Header + back link
+│       ├── Filters + Search bar + Refresh
+│       ├── Results count badge
+│       ├── Desktop: <table> view
+│       └── Mobile: card view
+```
+
+#### Interface TypeScript:
+
+```typescript
+interface Rezervare {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  guests: number;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  created_at: string;
+}
+
+type FilterType = 'all' | 'pending' | 'confirmed' | 'rejected';
+```
+
+**Concepte:**
+- `interface` = definește structura unui obiect (ce câmpuri are și ce tip)
+- `'pending' | 'confirmed' | 'rejected'` = Union Type - poate fi doar una din aceste valori
+- `type` = alias pentru un tip (similar cu interface, dar mai simplu)
+
+#### useMemo Hook (optimizare):
+
+```typescript
+const filtered = useMemo(() => {
+  let result = rezervari;
+  // Filtrare pe status
+  if (filter !== 'all') {
+    result = result.filter(r => r.status === filter);
+  }
+  // Căutare text
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    result = result.filter(r =>
+      r.name.toLowerCase().includes(q) ||
+      r.phone.includes(q) ||
+      r.email.toLowerCase().includes(q)
+    );
+  }
+  return result;
+}, [rezervari, filter, search]);
+```
+
+**Concepte:**
+- `useMemo` = memoizare - recalculează DOAR când dependențele se schimbă
+- `[rezervari, filter, search]` = dependențele (se recalculează când acestea se schimbă)
+- Fără `useMemo`, filtrarea s-ar rula la fiecare render (chiar dacă datele nu s-au schimbat)
+
+#### Optimistic UI Update:
+
+```typescript
+// La updateStatus, actualizăm local IMEDIAT (fără re-fetch):
+setRezervari(prev => prev.map(r =>
+  r.id === id ? { ...r, status: newStatus } : r
+));
+```
+
+**Concepte:**
+- **Optimistic Update** = actualizezi UI-ul imediat, fără a aștepta confirmarea serverului
+- Avantaj: UI responsiv, utilizatorul vede schimbarea instant
+- `prev.map()` = creează array nou cu elementul modificat
+
+#### Responsive: Desktop vs Mobile:
+
+```tsx
+{/* Desktop: tabel - ascuns pe mobil */}
+<div className="hidden md:block">
+  <table>...</table>
+</div>
+
+{/* Mobil: card-uri - ascuns pe desktop */}
+<div className="md:hidden">
+  {filtered.map(r => <div className="card">...</div>)}
+</div>
+```
+
+**Concepte:**
+- `hidden md:block` = ascunde pe mobil, afișează pe desktop
+- `md:hidden` = afișează pe mobil, ascunde pe desktop
+- Tabelele nu funcționează bine pe mobil → folosim card-uri
+
+### **Pasul 15.2: Testează Panoul Admin**
+
+1. Mergi pe `localhost:3000/admin`
+2. Verifică:
+   - Se încarcă tabelul cu rezervările existente
+   - Filtrele funcționează (Toate/In asteptare/Confirmate/Respinse)
+   - Căutarea funcționează (după nume, telefon, email)
+   - Butoanele de acțiune funcționează (confirmare, respingere, ștergere)
+   - Pe mobil apar carduri, pe desktop tabel
+
+---
+
+## 🚀 Săptămâna 3, Zi 5: Deploy cu Variabile de Mediu
+
+### **Pasul 16.1: Commit și Push pe GitHub**
+
+```bash
+git add .
+git commit -m "Connect reservation form to Supabase + admin panel"
+git push origin main
+```
+
+### **Pasul 16.2: Adaugă Environment Variables în Vercel**
+
+1. Mergi pe Vercel Dashboard → Project → Settings → Environment Variables
+2. Adaugă:
+   - `NEXT_PUBLIC_SUPABASE_URL` = URL-ul tău Supabase
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = Anon key-ul tău
+
+3. Click "Save"
+4. Vercel va re-deploya automat
+
+### **Pasul 16.3: Testează pe Producție**
+
+1. Accesează site-ul live
+2. Fă o rezervare pe `/rezervari`
+3. Verifică pe `/admin` că apare
+4. Verifică în Supabase Dashboard că datele sunt salvate
+
+---
+
+## 🗺️ Structura Finală Săptămâna 3
+
+```
+vibe-website/
+├── app/
+│   ├── globals.css
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── locatie/page.tsx
+│   ├── rezervari/page.tsx     ← MODIFICAT: fetch API în loc de console.log
+│   ├── admin/page.tsx         ← NOU: panou admin complet
+│   └── api/
+│       └── rezervari/
+│           └── route.ts       ← NOU: API CRUD (POST/GET/PATCH/DELETE)
+├── components/
+│   ├── Hero.tsx
+│   ├── Features.tsx
+│   ├── Menu.tsx
+│   ├── About.tsx
+│   ├── Footer.tsx
+│   ├── Navigation.tsx
+│   ├── ThemeToggle.tsx
+│   ├── ChatWidget.tsx
+│   ├── Preloader.tsx
+│   └── SmoothScroll.tsx
+├── lib/
+│   └── supabase.ts            ← NOU: client Supabase singleton
+├── .env.local                 ← NOU: credențiale Supabase (nu pe GitHub!)
+└── package.json               ← MODIFICAT: +@supabase/supabase-js
+```
+
+---
+
+## 🎓 Recapitulare Săptămâna 3
+
+### **Ce ai învățat:**
+
+**Backend & Database:**
+- ✅ Supabase setup (PostgreSQL în cloud)
+- ✅ SQL: CREATE TABLE, RLS Policies
+- ✅ Environment variables (`.env.local`)
+- ✅ Singleton pattern (client Supabase)
+
+**API Development:**
+- ✅ Next.js API Routes (`app/api/.../route.ts`)
+- ✅ HTTP Methods: POST, GET, PATCH, DELETE
+- ✅ Request/Response handling
+- ✅ Error handling & validation
+
+**Frontend Advanced:**
+- ✅ `fetch()` API - comunicare cu backend
+- ✅ `async/await` - cod asincron
+- ✅ `useMemo` - optimizare performanță
+- ✅ Optimistic UI updates
+- ✅ TypeScript interfaces & union types
+- ✅ Responsive patterns (tabel vs carduri)
+
+**Full Stack Flow:**
+```
+User completează formular
+    ↓
+Frontend trimite POST /api/rezervari
+    ↓
+API Route validează datele
+    ↓
+Supabase salvează în PostgreSQL
+    ↓
+Admin vizualizează pe /admin (GET)
+    ↓
+Admin confirmă/respinge (PATCH)
+    ↓
+Admin șterge dacă e nevoie (DELETE)
+```

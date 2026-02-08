@@ -722,6 +722,65 @@ Menu.tsx e client component pentru că folosește `onError` (event handler).
 
 ---
 
+## 🗄️ Baza de Date (Săptămâna 3)
+
+### Supabase - PostgreSQL în Cloud
+
+Site-ul folosește **Supabase** pentru stocarea rezervărilor. Supabase oferă:
+- PostgreSQL gratuit (bază de date relațională)
+- API automat generat
+- Dashboard vizual pentru date
+- Row Level Security (protecție)
+
+### Structura Tabelului `rezervari`
+
+| Coloană | Tip | Descriere |
+|---------|-----|-----------|
+| `id` | BIGINT (auto) | ID unic, auto-incrementat |
+| `name` | TEXT | Numele clientului |
+| `email` | TEXT | Email-ul clientului |
+| `phone` | TEXT | Telefonul clientului |
+| `guests` | INTEGER | Număr de persoane |
+| `date` | TEXT | Data rezervării |
+| `time` | TEXT | Ora rezervării |
+| `status` | TEXT | pending / confirmed / rejected |
+| `created_at` | TIMESTAMPTZ | Când s-a creat |
+
+### API Routes (Backend)
+
+Fișierul `app/api/rezervari/route.ts` conține 4 endpoint-uri:
+
+| Metodă | Acțiune | Folosit de |
+|--------|---------|------------|
+| `POST /api/rezervari` | Creează rezervare | Formularul `/rezervari` |
+| `GET /api/rezervari` | Listează rezervările | Panoul `/admin` |
+| `PATCH /api/rezervari` | Actualizează status | Butoanele din admin |
+| `DELETE /api/rezervari?id=N` | Șterge rezervare | Butonul de ștergere |
+
+### Panoul Admin (`/admin`)
+
+Pagină accesibilă prin URL direct (`/admin`) - fără link în navigație.
+
+**Funcționalități:**
+- Vizualizare toate rezervările (tabel desktop / carduri mobil)
+- Filtrare pe status: Toate / In asteptare / Confirmate / Respinse
+- Căutare după nume, telefon sau email
+- Acțiuni: Confirmă / Respinge / Resetează / Șterge
+- Refresh manual al datelor
+
+### Environment Variables Necesare
+
+Fișierul `.env.local` (NU se urcă pe GitHub):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
+
+Pentru deploy pe Vercel, aceleași variabile se adaugă în Settings → Environment Variables.
+
+---
+
 ## 🚀 Next Steps
 
 1. **Personalizează site-ul:**
@@ -731,7 +790,7 @@ Menu.tsx e client component pentru că folosește `onError` (event handler).
 
 2. **Adaugă funcționalități noi:**
    - Formular de contact
-   - Sistem de rezervări
+   - Sistem de notificări email
    - Blog cu articole
 
 3. **Deploy și share:**
@@ -740,9 +799,9 @@ Menu.tsx e client component pentru că folosește `onError` (event handler).
    - Adaugă în portofoliu
 
 4. **Învață mai mult:**
-   - React hooks (useState, useEffect)
-   - API integration
-   - Database (Supabase/Firebase)
+   - Autentificare (Supabase Auth)
+   - Edge Functions
+   - Real-time subscriptions
 
 ---
 
