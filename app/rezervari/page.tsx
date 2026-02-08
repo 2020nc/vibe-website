@@ -24,6 +24,8 @@ export default function RezervarePage() {
     guests: '2',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   // 📅 GENERARE ZILE DISPONIBILE (următoarele 14 zile)
   const generateAvailableDates = () => {
@@ -58,17 +60,33 @@ export default function RezervarePage() {
   };
 
   // 🎯 HANDLE FORM SUBMIT
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
-    // În producție, aici ar merge un API call către backend
-    console.log('Rezervare:', {
-      date: selectedDate,
-      time: selectedTime,
-      ...formData,
-    });
+    try {
+      const response = await fetch('/api/rezervari', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: selectedDate,
+          time: selectedTime,
+          ...formData,
+        }),
+      });
 
-    setSubmitted(true);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Eroare la trimiterea rezervării.');
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Eroare la trimiterea rezervării. Încearcă din nou.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ✅ ECRAN CONFIRMARE
@@ -130,6 +148,7 @@ export default function RezervarePage() {
                 setSelectedDate('');
                 setSelectedTime('');
                 setFormData({ name: '', email: '', phone: '', guests: '2' });
+                setError('');
               }}
               className="px-8 py-4 bg-secondary hover:bg-secondary-dark text-white font-semibold rounded-full transition-all duration-300 hover:scale-105"
             >
@@ -304,13 +323,21 @@ export default function RezervarePage() {
             </div>
           )}
 
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-center">
+              {error}
+            </div>
+          )}
+
           {/* SUBMIT BUTTON */}
           {selectedDate && selectedTime && (
             <button
               type="submit"
-              className="w-full py-4 bg-primary hover:bg-primary-dark text-white font-bold text-lg rounded-full transition-all duration-300 hover:scale-105 hover:shadow-xl"
+              disabled={isLoading}
+              className="w-full py-4 bg-primary hover:bg-primary-dark text-white font-bold text-lg rounded-full transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Confirmă rezervarea
+              {isLoading ? 'Se trimite...' : 'Confirmă rezervarea'}
             </button>
           )}
         </form>

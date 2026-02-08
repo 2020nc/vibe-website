@@ -34,8 +34,14 @@ export default function Navigation() {
         <Link href="/" className="flex items-center gap-2 group">
           <svg className={`transition-all duration-300 ${
             isScrolled ? 'w-8 h-8' : 'w-10 h-10'
-          } text-primary`} fill="currentColor" viewBox="0 0 20 20">
-            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+          } text-primary`} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5a8.25 8.25 0 0 0 15 0" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5h1.875A1.125 1.125 0 0 1 22.5 11.625v0a3.375 3.375 0 0 1-3.375 3.375H19.5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18h12" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21h9" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 18v3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 18v3" />
           </svg>
           <span className={`font-bold transition-all duration-300 ${
             isScrolled ? 'text-xl text-gray-900' : 'text-2xl text-white dark:text-gray-900'
