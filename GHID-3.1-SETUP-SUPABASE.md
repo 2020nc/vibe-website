@@ -1,285 +1,269 @@
 # GHID 3.1 - Setup Supabase prin Claude Code
 > Material suplimentar pentru cursanti - Video 3.1
-> Tot ce facem aici e prin comenzi in terminal, ghidate de Claude Code.
+> Vorbesti cu Claude Code ca si cum vorbesti cu un coleg - in limba naturala.
 
 ---
 
 ## Inainte de a incepe
 
 Ai nevoie de:
-- **VS Code** cu extensia Claude Code (instalata in Saptamana 1)
-- **Cont GitHub** (creat in Saptamana 1)
-- **Cont Supabase** - il cream acum (Sign up cu GitHub pe supabase.com)
-- **Supabase CLI** instalat (vezi Pasul 1)
+- **VS Code** cu Claude Code instalat (din Saptamana 1)
+- **Cont GitHub** (din Saptamana 1)
+- O conexiune la internet
+
+Asta e tot. Restul il faci vorbind cu Claude Code.
 
 ---
 
-## Pasul 1: Instalam Supabase CLI
+## COMANDA 1: Instaleaza Supabase
 
-Deschide Claude Code in VS Code si scrie:
+Deschide Claude Code in VS Code si spune-i:
 
-> **Tu catre Claude Code:**
-> "Instaleaza Supabase CLI pe Mac cu Homebrew"
+> **"Am nevoie sa lucrez cu Supabase. Instaleaza tot ce trebuie pe calculatorul meu."**
 
-**Ce va rula Claude Code:**
-```bash
-brew install supabase/tap/supabase
+**Ce face Claude Code:**
+- Instaleaza programul Supabase pe Mac (sau Windows/Linux)
+- Iti spune cand e gata
+- Iti arata versiunea instalata
+
+**Ce astepti sa vezi:**
+```
+Supabase CLI 2.75.0 instalat cu succes
 ```
 
-**Verificare - cere-i lui Claude Code:**
-> "Verifica ca Supabase CLI e instalat"
-
-```bash
-supabase --version
-```
-
-Ar trebui sa vezi ceva de genul: `Supabase CLI 2.75.0`
-
-> **Daca nu ai Homebrew:** Claude Code te va ghida sa il instalezi, sau poti folosi varianta cu npm: `npm install -g supabase`
+> **Daca ceva nu merge,** Claude Code te intreaba ce sistem ai (Mac/Windows) si iti da alte optiuni.
 
 ---
 
-## Pasul 2: Autentificare in Supabase
+## COMANDA 2: Conecteaza-te la Supabase
 
-> **Tu catre Claude Code:**
-> "Logheaza-ma in Supabase CLI"
+Spune-i lui Claude Code:
 
-**Ce va rula Claude Code:**
-```bash
-supabase login
-```
+> **"Vreau sa ma conectez la Supabase. Logheaza-ma."**
 
-Se deschide browserul automat. Daca nu ai cont Supabase:
-1. Click "Sign up with GitHub" pe supabase.com
+**Ce face Claude Code:**
+- Deschide browserul automat
+- Te duce pe site-ul Supabase
+- Iti spune sa te loghezi cu GitHub
+
+**Ce faci tu:**
+1. In browser, click "Sign up with GitHub" (sau "Log in" daca ai cont deja)
 2. Autorizeaza accesul
-3. Revii in terminal - apare "Token saved"
+3. Revii in VS Code - Claude Code iti spune "Gata, esti conectat"
 
-**Verificare:**
-> "Arata-mi proiectele mele Supabase"
+**Verificare (optional):**
 
-```bash
-supabase projects list
-```
+> **"Arata-mi ce proiecte am pe Supabase."**
 
 Daca e prima data, lista e goala - normal.
 
 ---
 
-## Pasul 3: Cream proiectul `vibe-caffe`
+## COMANDA 3: Creaza proiectul pe Supabase
 
-> **Tu catre Claude Code:**
-> "Creeaza un proiect Supabase numit vibe-caffe in regiunea EU West. Genereaza o parola de baza de date."
+Spune-i lui Claude Code:
 
-**Ce va rula Claude Code:**
-```bash
-supabase projects create vibe-caffe \
-  --org-id <id-ul organizatiei tale> \
-  --region eu-west-1 \
-  --db-password <parola generata>
+> **"Vreau sa fac un proiect nou pe Supabase pentru site-ul meu de cafenea. Numele e vibe-caffe. Pune-l cat mai aproape de Romania geografic. Si genereaza o parola pentru baza de date."**
+
+**Ce face Claude Code:**
+- Creaza proiectul "vibe-caffe" pe Supabase
+- Il pune pe un server in Europa (Frankfurt)
+- Genereaza o parola sigura automat
+- Iti da un link unde poti vedea proiectul pe site
+
+**Ce astepti sa vezi:**
+```
+Proiect creat: vibe-caffe
+URL: https://supabase.com/dashboard/project/abc123
 ```
 
-> **Nota:** Claude Code va citi mai intai organizatiile tale cu `supabase orgs list` ca sa gaseasca `--org-id` corect. Nu trebuie sa stii tu.
-
-Raspunsul arata cam asa:
-```
-Created a new project vibe-caffe at https://supabase.com/dashboard/project/abcdefghijk
-```
-
-Retine **reference ID** (sirul de litere, ex: `abcdefghijk`) - Claude Code il foloseste automat in pasii urmatori.
-
-**Asteapta ~2 minute** pana se creeaza proiectul (Supabase provisioneaza serverul PostgreSQL).
+> **Important:** Asteapta 1-2 minute. Supabase pregateste serverul pentru tine in spate.
 
 ---
 
-## Pasul 4: Initializam Supabase in proiect si link
+## COMANDA 4: Leaga proiectul local de Supabase
 
-> **Tu catre Claude Code:**
-> "Initializeaza Supabase in proiectul nostru si leaga-l la proiectul vibe-caffe de pe Supabase"
+Spune-i lui Claude Code:
 
-**Ce va rula Claude Code:**
-```bash
-supabase init
-```
+> **"Acum vreau sa leag proiectul meu de pe calculator de proiectul vibe-caffe de pe Supabase."**
 
-Asta creeaza un folder `supabase/` in proiect cu structura:
+**Ce face Claude Code:**
+- Creeaza un folder special `supabase/` in proiectul tau
+- Il conecteaza la proiectul de pe cloud
+- Iti cere parola bazei de date (cea generata la comanda 3)
+
+**Ce astepti sa vezi:**
+Un folder nou `supabase/` in proiect, cu fisiere inauntru:
 ```
 supabase/
-  └── config.toml    (configurare locala)
-  └── migrations/    (folder gol, aici punem SQL-ul)
-  └── seed.sql       (date initiale - optional)
+  config.toml
+  migrations/
+  seed.sql
 ```
 
-Apoi:
-```bash
-supabase link --project-ref <reference-id>
-```
-
-> Claude Code foloseste automat reference ID-ul din pasul anterior. Ti se va cere parola bazei de date (cea generata la pasul 3).
+> **Nota:** Claude Code tine minte parola. Nu trebuie sa ti-o notezi.
 
 ---
 
-## Pasul 5: Cream tabelul cu SQL (migration)
+## COMANDA 5: Creaza tabelul pentru rezervari
 
-> **Tu catre Claude Code:**
-> "Creeaza o migratie SQL pentru tabelul de rezervari. Tabelul sa aiba: id auto-increment, name, email, phone (toate text obligatorii), guests (numar, default 2), date si time (text), status (text, default pending), created_at (timestamp automat). Adauga si Row Level Security cu policies care permit insert, select, update si delete pentru anonimi."
+Aici vine partea importanta - cream structura in care se salveaza rezervarile.
 
-**Ce va face Claude Code:**
+Spune-i lui Claude Code:
 
-1. Creeaza fisierul de migratie:
-```bash
-supabase migration new create_rezervari_table
+> **"Vreau sa creez un tabel pentru rezervari in baza de date. Tabelul sa aiba urmatoarele campuri:**
+>
+> **- nume, email, telefon (toate obligatorii)**
+> **- numar de persoane (implicit 2)**
+> **- data si ora**
+> **- un status care sa fie 'in asteptare' cand cineva face o rezervare noua**
+> **- o coloana care sa tina minte cand s-a facut rezervarea**
+> **- un ID unic care sa creasca automat**
+>
+> **Si vreau sa fie securizat - adica oricine sa poata adauga, citi, modifica si sterge rezervari."**
+
+**Ce face Claude Code:**
+- Creeaza un fisier SQL in `supabase/migrations/`
+- Scrie tot codul necesar (tu nu trebuie sa stii SQL)
+- Iti explica pe scurt ce a scris
+
+**Ce astepti sa vezi:**
+Un fisier nou in `supabase/migrations/` cu un nume de genul:
+```
+20260208123045_create_rezervari_table.sql
 ```
 
-Asta creeaza un fisier in `supabase/migrations/` cu un timestamp, de exemplu:
-`supabase/migrations/20260208_create_rezervari_table.sql`
-
-2. Scrie SQL-ul in fisier:
-
-```sql
-CREATE TABLE rezervari (
-  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  guests INTEGER NOT NULL DEFAULT 2,
-  date TEXT NOT NULL,
-  time TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE rezervari ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow anonymous insert" ON rezervari
-  FOR INSERT TO anon WITH CHECK (true);
-
-CREATE POLICY "Allow anonymous select" ON rezervari
-  FOR SELECT TO anon USING (true);
-
-CREATE POLICY "Allow anonymous update" ON rezervari
-  FOR UPDATE TO anon USING (true) WITH CHECK (true);
-
-CREATE POLICY "Allow anonymous delete" ON rezervari
-  FOR DELETE TO anon USING (true);
-```
-
-> **Ce face SQL-ul?**
-> - `CREATE TABLE` = creeaza tabelul cu coloanele definite
-> - `id ... IDENTITY PRIMARY KEY` = numar unic, creste automat (1, 2, 3...)
-> - `TEXT NOT NULL` = text obligatoriu (nu poate fi gol)
-> - `DEFAULT 2` = daca nu specifici, implicit 2 persoane
-> - `DEFAULT 'pending'` = orice rezervare noua incepe cu status "in asteptare"
-> - `ENABLE ROW LEVEL SECURITY` = activeaza "paznicul" pe tabel
-> - `CREATE POLICY` = 4 reguli: oricine poate adauga, citi, modifica, sterge
-> - Intr-un proiect real ai restrictiona mai mult, dar pentru curs e suficient
+> **Ce contine fisierul (nu trebuie sa il scrii tu):**
+> - Tabelul `rezervari` cu toate campurile
+> - Securitatea setata (Row Level Security)
+> - 4 reguli: insert, select, update, delete
 
 ---
 
-## Pasul 6: Trimitem migratia pe Supabase (remote)
+## COMANDA 6: Trimite tabelul pe Supabase
 
-> **Tu catre Claude Code:**
-> "Ruleaza migratia pe baza de date remote (Supabase cloud)"
+Acum tabelul e doar pe calculatorul tau. Trebuie sa-l trimitem pe cloud.
 
-**Ce va rula Claude Code:**
-```bash
-supabase db push
+Spune-i lui Claude Code:
+
+> **"Gata cu tabelul local. Trimite-l acum pe Supabase, pe serverul de acolo."**
+
+**Ce face Claude Code:**
+- Trimite fisierul SQL pe cloud
+- Ruleaza codul acolo (creeaza tabelul in baza de date)
+- Iti confirma ca a mers
+
+**Ce astepti sa vezi:**
+```
+Migration applied successfully
+Tabel 'rezervari' creat pe Supabase
 ```
 
-Raspunsul:
-```
-Applying migration 20260208_create_rezervari_table.sql...
-Finished supabase db push.
-```
-
-**Gata!** Tabelul `rezervari` exista acum pe Supabase, in cloud, cu securitatea setata.
+**Gata!** Acum tabelul `rezervari` exista pe Supabase, in cloud, gata sa primeasca date.
 
 ---
 
-## Pasul 7: Obtinem cheile de acces
+## COMANDA 7: Ia cheile si salveaza-le local
 
-> **Tu catre Claude Code:**
-> "Arata-mi URL-ul si cheile API pentru proiectul vibe-caffe de pe Supabase. Salveaza-le in fisierul .env.local"
+Ca sa vorbeasca site-ul nostru cu Supabase, avem nevoie de 2 informatii: o adresa (URL) si o cheie de acces.
 
-**Ce va rula Claude Code:**
+Spune-i lui Claude Code:
 
-1. Obtine cheile:
-```bash
-supabase projects api-keys --project-ref <reference-id>
+> **"Ia cheile de acces pentru proiectul vibe-caffe de pe Supabase si pune-le intr-un fisier .env.local in proiectul meu. Nu vreau sa le vad, doar sa le salvezi acolo."**
+
+**Ce face Claude Code:**
+- Ia URL-ul si cheia de acces de pe Supabase
+- Creeaza fisierul `.env.local` in radacina proiectului
+- Scrie cheile acolo in formatul corect
+- Iti spune ca fisierul e gata
+
+**Ce astepti sa vezi:**
+```
+Fisier .env.local creat cu cheile Supabase
 ```
 
-Raspunsul arata cam asa:
+Si un fisier nou `.env.local` in proiect cu continut de genul:
 ```
-   NAME     |                          API KEY
-------------|------------------------------------------------------------
-  anon key  | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm...
-  service   | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm...
+NEXT_PUBLIC_SUPABASE_URL=https://abc123.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
 
-2. Creeaza fisierul `.env.local` in radacina proiectului:
-
-```bash
-# Supabase - Baza de date pentru rezervari
-NEXT_PUBLIC_SUPABASE_URL=https://abcdefghijk.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-> **IMPORTANT:**
-> - **URL-ul** = `https://<reference-id>.supabase.co`
-> - **Anon Key** = cheia publica (permite accesul de pe site)
-> - Fisierul `.env.local` e deja in `.gitignore` - **NU se urca pe GitHub**
-> - `NEXT_PUBLIC_` la inceput = variabila e disponibila si in browser
+> **Important:** Fisierul asta nu se urca pe GitHub. E doar al tau, local.
 
 ---
 
-## Verificare finala
+## VERIFICARE FINALA (optional)
 
-> **Tu catre Claude Code:**
-> "Verifica ca totul e configurat corect: proiectul Supabase e linkat, tabelul rezervari exista, si .env.local are cheile"
+Spune-i lui Claude Code:
 
-**Ce va rula Claude Code:**
-```bash
-# Verificare link
-supabase projects list
+> **"Verifica te rog ca totul e OK: proiectul e conectat la Supabase, tabelul e creat si cheile sunt salvate."**
 
-# Verificare migratie aplicata
-supabase migration list
+**Ce face Claude Code:**
+- Verifica conexiunea la Supabase
+- Verifica ca tabelul `rezervari` exista
+- Verifica ca `.env.local` are cheile
+- Iti da un rezumat
 
-# Verificare .env.local exista
-cat .env.local
+**Ce astepti sa vezi:**
+```
+✓ Conectat la Supabase (proiect vibe-caffe)
+✓ Tabel 'rezervari' exista
+✓ Chei salvate in .env.local
+Totul e in regula!
 ```
 
 ---
 
-## Rezumat: Ce i-ai cerut lui Claude Code
+## Rezumat: Cele 7 comenzi
 
-| # | Ce i-ai spus | Ce a facut |
-|---|-------------|-----------|
-| 1 | "Instaleaza Supabase CLI" | `brew install supabase/tap/supabase` |
-| 2 | "Logheaza-ma in Supabase" | `supabase login` (deschide browser) |
-| 3 | "Creeaza proiect vibe-caffe" | `supabase projects create vibe-caffe ...` |
-| 4 | "Initializeaza si leaga proiectul" | `supabase init` + `supabase link` |
-| 5 | "Creeaza migratie pentru tabelul rezervari" | Fisier SQL in `supabase/migrations/` |
-| 6 | "Ruleaza migratia pe remote" | `supabase db push` |
-| 7 | "Salveaza cheile in .env.local" | `supabase projects api-keys` + scrie `.env.local` |
+| # | Ce i-ai spus lui Claude Code | Ce a facut |
+|---|------------------------------|-----------|
+| 1 | "Instaleaza tot ce trebuie pentru Supabase" | A instalat Supabase CLI |
+| 2 | "Conecteaza-ma la Supabase" | Te-a logat prin browser |
+| 3 | "Creaza proiect vibe-caffe aproape de Romania" | Proiect creat pe server in Europa |
+| 4 | "Leaga proiectul local de cel de pe cloud" | Folder `supabase/` creat si conectat |
+| 5 | "Creaza tabel pentru rezervari cu campurile..." | Fisier SQL scris in `migrations/` |
+| 6 | "Trimite tabelul pe Supabase" | Tabel creat in baza de date cloud |
+| 7 | "Ia cheile si salveaza-le in .env.local" | Fisier `.env.local` creat cu chei |
 
-**7 prompturi date lui Claude Code = baza de date complet configurata.**
+**7 comenzi simple = baza de date completa.**
+
+Nu ai scris nicio comanda tehnica. Doar ai vorbit normal cu Claude Code.
 
 ---
 
-## Probleme frecvente
+## Daca ceva nu merge
 
-**"supabase: command not found"**
-→ Cere-i lui Claude Code: "Instaleaza Supabase CLI cu npm global"
-→ Va rula: `npm install -g supabase`
+**"Nu gasesc Supabase instalat"**
+→ Spune-i: *"Instaleaza Supabase altfel, nu am Homebrew"* (sau ce program ti-a cerut)
 
-**"Error: not logged in"**
-→ Cere-i: "Logheaza-ma in Supabase" → `supabase login`
+**"Nu ma pot conecta la Supabase"**
+→ Spune-i: *"Incearca din nou sa ma loghezi la Supabase"*
 
-**"Project not yet active"**
-→ Proiectul e inca in curs de creare. Asteapta 2 minute si incearca din nou.
+**"Proiectul nu e gata"**
+→ Normal, asteapta 2 minute si spune-i: *"Verifica daca proiectul e gata acum"*
 
-**"relation rezervari already exists"**
-→ Tabelul e deja creat. Totul e ok.
+**"Tabelul exista deja"**
+→ Perfect, inseamna ca deja l-ai creat. Sari peste comanda 6.
 
-**"Cannot find project ref"**
-→ Cere-i: "Leaga proiectul la Supabase vibe-caffe" → `supabase link --project-ref <id>`
+**"Nu gasesc cheile"**
+→ Spune-i: *"Ia cheile din nou si arata-mi fisierul .env.local"*
+
+**"Cum verific daca a mers?"**
+→ Spune-i: *"Verifica ca totul e OK"* (verificarea finala)
+
+---
+
+## Ce ai acum
+
+Dupa aceste 7 comenzi ai:
+
+✅ Supabase instalat pe calculator
+✅ Cont conectat la Supabase
+✅ Proiect "vibe-caffe" pe cloud (Frankfurt)
+✅ Folder `supabase/` in proiect (legat la cloud)
+✅ Tabel `rezervari` cu toate campurile (in cloud)
+✅ Securitate setata (oricine poate accesa)
+✅ Chei de conectare salvate in `.env.local`
+
+**In video-ul urmator** conectam formularul de rezervari la tabelul asta si incepem sa salvam date reale.

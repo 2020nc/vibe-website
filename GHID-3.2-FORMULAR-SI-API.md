@@ -1,292 +1,214 @@
 # GHID 3.2 - Formularul de rezervari conectat la baza de date
 > Material suplimentar pentru cursanti - Video 3.2
-> Tot ce facem aici e prin prompturi date lui Claude Code.
+> Vorbesti cu Claude Code ca si cum vorbesti cu un coleg - in limba naturala.
 
 ---
 
 ## Inainte de a incepe
 
 Ai nevoie de:
-- Pasii din GHID 3.1 finalizati (Supabase configurat, `.env.local` cu chei)
+- Pasii din GHID 3.1 finalizati (Supabase configurat)
 - Proiectul `vibe-website` deschis in VS Code
 - Claude Code activ
 
 ---
 
-## Pasul 1: Instalam libraria Supabase
+## COMANDA 1: Instalează ce trebuie
 
-> **Tu catre Claude Code:**
-> "Instaleaza libraria @supabase/supabase-js in proiect"
+Spune-i lui Claude Code:
 
-**Ce va rula Claude Code:**
-```bash
-npm install @supabase/supabase-js
+> **"Trebuie să instalez ceva ca să vorbesc cu Supabase din proiect?"**
+
+Claude Code o să-ți spună ce trebuie și o să instaleze.
+
+**Ce aștepți să vezi:**
 ```
-
-**Ce se intampla:** Se adauga pachetul in `package.json` sub `dependencies`. Aceasta librarie stie sa comunice cu Supabase (sa trimita si sa primeasca date).
-
----
-
-## Pasul 2: Cream clientul Supabase (fisierul de conexiune)
-
-> **Tu catre Claude Code:**
-> "Creeaza un fisier lib/supabase.ts care exporta o functie getSupabase(). Functia sa citeasca NEXT_PUBLIC_SUPABASE_URL si NEXT_PUBLIC_SUPABASE_ANON_KEY din environment variables, sa creeze un client Supabase cu createClient si sa il returneze. Foloseste Singleton pattern - sa nu creeze un client nou de fiecare data. Daca variabilele lipsesc, sa arunce o eroare clara."
-
-**Ce va crea Claude Code:**
-
-Fisierul `lib/supabase.ts`:
-```typescript
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-let _supabase: SupabaseClient | null = null;
-
-export function getSupabase(): SupabaseClient {
-  if (_supabase) return _supabase;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase nu este configurat. Adauga cheile in .env.local');
-  }
-
-  _supabase = createClient(supabaseUrl, supabaseAnonKey);
-  return _supabase;
-}
-```
-
-> **Ce face:**
-> - Citeste URL-ul si cheia din `.env.local`
-> - Creeaza conexiunea la Supabase o singura data (Singleton)
-> - Daca lipsesc cheile, arunca eroare clara in loc sa crape misterios
-
----
-
-## Pasul 3: Cream API Route - POST (salvare rezervare)
-
-> **Tu catre Claude Code:**
-> "Creeaza un API route la app/api/rezervari/route.ts. Adauga o functie POST care: primeste din body name, email, phone, guests, date, time. Valideaza ca toate campurile exista. Apoi salveaza in tabelul 'rezervari' din Supabase cu insert. Returneaza 201 la succes, 400 la date invalide, 500 la eroare. Foloseste getSupabase din lib/supabase.ts."
-
-**Ce va crea Claude Code:**
-
-Fisierul `app/api/rezervari/route.ts` cu functia POST:
-```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/supabase';
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { name, email, phone, guests, date, time } = body;
-
-    if (!name || !email || !phone || !guests || !date || !time) {
-      return NextResponse.json(
-        { error: 'Toate campurile sunt obligatorii.' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = getSupabase();
-    const { data: savedData, error } = await supabase
-      .from('rezervari')
-      .insert([{ name, email, phone, guests: Number(guests), date, time }])
-      .select();
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Eroare la salvare.' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: 'Rezervare salvata!', data: savedData },
-      { status: 201 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Eroare de server.' },
-      { status: 500 }
-    );
-  }
-}
-```
-
-> **Ce face:**
-> - Primeste datele din formular (body-ul request-ului)
-> - Verifica ca nimic nu lipseste
-> - Salveaza in tabelul `rezervari` pe Supabase
-> - Returneaza mesaj de succes sau eroare
-
----
-
-## Pasul 4: Adaugam GET in API Route (citire rezervari)
-
-> **Tu catre Claude Code:**
-> "In acelasi fisier app/api/rezervari/route.ts, adauga o functie GET care citeste toate rezervarile din tabelul 'rezervari', ordonate dupa created_at descrescator (cele mai noi primele). Returneaza 200 cu datele sau 500 la eroare."
-
-**Ce va adauga Claude Code** in acelasi fisier:
-```typescript
-export async function GET() {
-  try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('rezervari')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      return NextResponse.json(
-        { error: 'Eroare la citire.' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ data }, { status: 200 });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Eroare de server.' },
-      { status: 500 }
-    );
-  }
-}
-```
-
-> **Ce face:**
-> - Citeste TOATE randurile din tabelul `rezervari`
-> - Le sorteaza: cele mai noi primele
-> - Returneaza lista (o vom folosi in panoul admin, in Video 3.3)
-
----
-
-## Pasul 5: Cream pagina de rezervari cu formular
-
-> **Tu catre Claude Code:**
-> "Creeaza pagina app/rezervari/page.tsx - o pagina de rezervari pentru cafenea cu 3 pasi:
->
-> Pasul 1: Selecteaza data - afiseaza un mini-calendar cu navigare pe luni (maxim 6 luni in viitor, zilele trecute disabled) si sub el butoane rapide pentru urmatoarele 14 zile.
->
-> Pasul 2: Selecteaza ora - butoane cu slot-uri orare de la 10:00 la 22:00, din 30 in 30 de minute. Apare doar dupa ce ai selectat data.
->
-> Pasul 3: Detalii - formular cu nume, email, telefon, numar persoane (1-12). Apare doar dupa ce ai selectat ora.
->
-> La submit, trimite datele cu fetch POST la /api/rezervari. Afiseaza loading pe buton, erori daca apar, si un ecran de confirmare la succes cu buton 'Rezervare noua'.
->
-> Design: glassmorphism (backdrop-blur, bg-white/80), culoare primara teal (#14B8A6), secondary orange (#F97316). Responsive. Adauga un link inapoi spre pagina principala."
-
-**Ce va crea Claude Code:**
-
-Fisierul `app/rezervari/page.tsx` - pagina completa cu:
-- Calendar lunar cu navigare `<` `>` intre luni
-- Butoane rapide pentru 14 zile
-- Slot-uri orare 10:00-22:00
-- Formular cu validare
-- `handleSubmit` cu `fetch POST` la API
-- State-uri: `selectedDate`, `selectedTime`, `formData`, `isLoading`, `error`, `submitted`
-- Ecran confirmare la succes
-
-> **Ce face:**
-> - Userul alege data (calendar sau butoane rapide)
-> - Alege ora
-> - Completeaza datele personale
-> - Da Submit → datele se trimit la API Route → se salveaza in Supabase
-> - Vede ecranul de confirmare
-
----
-
-## Pasul 6: Testam local
-
-> **Tu catre Claude Code:**
-> "Porneste serverul de dezvoltare"
-
-**Ce va rula Claude Code:**
-```bash
-npm run dev
-```
-
-Deschide browserul la `localhost:3000/rezervari`.
-
-### Test:
-1. Selecteaza o data din calendar
-2. Selecteaza o ora
-3. Completeaza: Nume, Email, Telefon, Persoane
-4. Click **"Confirma rezervarea"**
-5. Ar trebui sa apara ecranul de confirmare
-
-### Verificare in Supabase:
-
-> **Tu catre Claude Code:**
-> "Verifica daca rezervarea s-a salvat in Supabase - fa un GET la /api/rezervari"
-
-**Ce va rula Claude Code:**
-```bash
-curl http://localhost:3000/api/rezervari
-```
-
-Ar trebui sa vezi un JSON cu rezervarea ta. Sau verifica direct in Supabase Dashboard → Table Editor → `rezervari`.
-
-> **Fa inca o rezervare** cu date diferite si verifica din nou.
-
----
-
-## Pasul 7: Verificam build-ul
-
-> **Tu catre Claude Code:**
-> "Ruleaza build-ul sa verificam ca totul e ok"
-
-**Ce va rula Claude Code:**
-```bash
-npm run build
-```
-
-Ar trebui sa treaca fara erori. Daca sunt erori, Claude Code le va rezolva automat.
-
----
-
-## Rezumat: Ce i-ai cerut lui Claude Code
-
-| # | Ce i-ai spus | Ce a creat/rulat |
-|---|-------------|-----------------|
-| 1 | "Instaleaza @supabase/supabase-js" | `npm install @supabase/supabase-js` |
-| 2 | "Creeaza lib/supabase.ts cu getSupabase()" | Fisier conexiune Supabase (singleton) |
-| 3 | "Creeaza API route cu POST" | `app/api/rezervari/route.ts` - salvare |
-| 4 | "Adauga GET in API route" | Functie citire rezervari |
-| 5 | "Creeaza pagina de rezervari cu formular" | `app/rezervari/page.tsx` complet |
-| 6 | "Porneste serverul" | `npm run dev` + test manual |
-| 7 | "Ruleaza build-ul" | `npm run build` - verificare |
-
-**7 prompturi = formular de rezervari complet conectat la baza de date.**
-
----
-
-## Ce am construit - diagrama
-
-```
-[Utilizator in browser]
-        |
-        | completeaza formularul si da Submit
-        v
-[app/rezervari/page.tsx]  --fetch POST-->  [app/api/rezervari/route.ts]
-                                                    |
-                                                    | getSupabase().from('rezervari').insert()
-                                                    v
-                                            [Supabase - tabel rezervari]
+✓ Instalat
 ```
 
 ---
 
-## Probleme frecvente
+## COMANDA 2: Conectează proiectul la Supabase
 
-**"Eroare la salvare" / "Eroare de server"**
-→ Verifica `.env.local` - cheile Supabase sunt corecte?
-→ Cere-i lui Claude Code: "Verifica ca .env.local are cheile Supabase corecte si ca tabelul rezervari exista"
+Spune-i lui Claude Code:
 
-**Formularul nu apare / pagina goala**
-→ Cere-i: "Verifica daca app/rezervari/page.tsx exista si porneste serverul"
+> **"Vreau să conectez proiectul la Supabase. Fă un fișier care citește cheile din .env.local și mă conectează."**
 
-**"Supabase nu este configurat"**
-→ Fisierul `.env.local` lipseste sau cheile sunt gresite
-→ Cere-i: "Arata-mi continutul .env.local"
+**Ce face Claude Code:**
+- Creează fișierul de conectare
+- Citește cheile din `.env.local`
+- Setează conexiunea
 
-**Build esueaza**
-→ Cere-i lui Claude Code: "Rezolva erorile de build" - le va fixa automat
+**Ce aștepți să vezi:**
+Fișier nou `lib/supabase.ts`
+
+---
+
+## COMANDA 3: Fă legătura dintre formular și baza de date
+
+Spune-i lui Claude Code:
+
+> **"Trebuie să pot salva rezervările în Supabase. Fă un fișier care primește datele din formular și le salvează în tabelul rezervari."**
+
+Claude Code o să te întrebe ce date primește. Spune-i:
+
+> **"Nume, email, telefon, câți oameni, data, ora."**
+
+**Ce face Claude Code:**
+- Creează fișierul
+- Face funcția care salvează datele
+- Verifică că e totul completat
+
+**Ce aștepți să vezi:**
+Fișier nou `app/api/rezervari/route.ts`
+
+---
+
+## COMANDA 4: Adaugă și citirea rezervărilor
+
+Spune-i lui Claude Code:
+
+> **"În același fișier, vreau să pot citi și toate rezervările din tabel, cele mai noi primele."**
+
+**Ce face Claude Code:**
+- Adaugă funcția de citire
+- Sortează: noi → vechi
+
+**Ce aștepți să vezi:**
+Fișierul `route.ts` actualizat
+
+---
+
+## COMANDA 5: Creează pagina cu formularul
+
+Spune-i lui Claude Code:
+
+> **"Vreau pagină de rezervări cu formular în 3 pași: alegi data, alegi ora, completezi detaliile."**
+
+Claude Code o să te întrebe detalii. Răspunzi:
+
+> **"La data: calendar cu navigare pe luni, maxim 6 luni în viitor, și butoane rapide pentru următoarele 14 zile."**
+
+> **"La ore: butoane de la 10:00 la 22:00, din 30 în 30 de minute."**
+
+> **"La detalii: nume, email, telefon, câți oameni între 1 și 12."**
+
+Dacă te întreabă despre ce se întâmplă când trimiți:
+
+> **"Când dai submit, datele merg la fișierul route.ts, arată spinner pe buton, și dacă merge arată 'Rezervare confirmată!' cu buton pentru rezervare nouă."**
+
+Dacă te întreabă despre design:
+
+> **"Fundal transparent cu blur, teal principal, portocaliu secundar. Să meargă bine și pe telefon."**
+
+**Ce face Claude Code:**
+- Creează pagina
+- Face formularul cu 3 pași
+- Calendar + butoane rapide
+- Butoane ore
+- Câmpuri detalii
+- Mesaje de confirmare
+
+**Ce aștepți să vezi:**
+Fișier nou `app/rezervari/page.tsx`
+
+---
+
+## COMANDA 6: Testează formularul
+
+Spune-i lui Claude Code:
+
+> **"Pornește serverul și deschide pagina de rezervări."**
+
+**Ce faci tu:**
+1. Deschide link-ul în browser
+2. Alege o dată
+3. Alege o oră
+4. Completează detaliile
+5. Trimite
+6. Ar trebui să vezi confirmare
+
+**Apoi verifică:**
+
+> **"Verifică dacă rezervarea s-a salvat în Supabase. Arată-mi ce e în tabel."**
+
+**Ce aștepți să vezi:**
+Rezervarea ta în listă
+
+---
+
+## COMANDA 7: Verifică că totul compilează
+
+Spune-i lui Claude Code:
+
+> **"Verifică că totul compilează și nu sunt erori."**
+
+**Ce face Claude Code:**
+- Rulează verificarea
+- Îți arată dacă sunt probleme
+
+**Ce aștepți să vezi:**
+```
+✓ Totul OK
+```
+
+---
+
+## Rezumat: Cele 7 comenzi
+
+| # | Ce i-ai spus | Ce a făcut |
+|---|--------------|------------|
+| 1 | "Trebuie să instalez ceva pentru Supabase?" | A instalat |
+| 2 | "Conectează proiectul la Supabase" | lib/supabase.ts creat |
+| 3 | "Fă legătura formular - bază de date" | Fișier care salvează |
+| 4 | "Adaugă citirea rezervărilor" | Funcție de citire |
+| 5 | "Vreau pagină cu formular în 3 pași" | Pagină completă |
+| 6 | "Pornește serverul și testează" | Test + verificare |
+| 7 | "Verifică că totul compilează" | Verificare erori |
+
+**7 comenzi = formular funcțional care salvează în baza de date.**
+
+---
+
+## Dacă ceva nu merge
+
+**"Nu văd formularul"**
+→ Spune-i: *"Verifică dacă pagina există și pornește serverul"*
+
+**"Eroare: Supabase nu e configurat"**
+→ Spune-i: *"Verifică că .env.local are cheile corecte"*
+
+**"Nu compilează"**
+→ Spune-i: *"Rezolvă erorile"*
+
+**"Rezervarea nu apare în Supabase"**
+→ Spune-i: *"De ce nu se salvează? Arată-mi erorile."*
+
+**"Calendarul nu merge bine"**
+→ Spune-i: *"Repară calendarul"*
+
+---
+
+## Ce ai acum
+
+✅ Conexiune la Supabase
+✅ Salvare rezervări
+✅ Citire rezervări
+✅ Pagină cu formular
+✅ Sistem testat
+
+**În video-ul următor:** Panoul admin.
+
+---
+
+## Cum funcționează
+
+```
+Utilizator completează formularul
+        ↓
+Datele merg la fișierul de mijloc
+        ↓
+Se salvează în Supabase
+        ↓
+Utilizator vede: "Rezervare confirmată!"
+```
