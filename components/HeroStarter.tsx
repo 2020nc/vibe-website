@@ -8,24 +8,64 @@
 
 export default function HeroStarter() {
   return (
-    <section className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-900 to-amber-700">
-      <div className="max-w-4xl mx-auto px-6 text-center text-white">
+    <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source src="/2853793-uhd_3840_2160_24fps.mp4" type="video/mp4" />
+      </video>
+      <div className="absolute inset-0 bg-black/50" />
+
+<div className="relative z-10 max-w-4xl mx-auto px-6 text-center text-white">
         {/* TITLU PRINCIPAL */}
-        <h1 className="text-5xl md:text-7xl font-bold mb-6">
+        <h1
+          className="hero-anim text-6xl md:text-8xl lg:text-9xl font-bold mb-6 leading-tight"
+          style={{ textShadow: '0 4px 24px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5)', animationDelay: '0.5s' }}
+        >
           Cafeaua care te trezește
         </h1>
 
         {/* SUBTITLU */}
-        <p className="text-xl md:text-2xl mb-8 text-white/90">
+        <p
+          className="hero-anim text-6xl md:text-7xl lg:text-8xl font-bold italic mb-8 text-white/80"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)', animationDelay: '0.8s' }}
+        >
           Vino pentru aromă, rămâi pentru atmosferă
         </p>
 
-        {/* BUTON CTA */}
+        {/* BUTOANE CTA */}
+        <div className="hero-anim flex flex-col sm:flex-row gap-6 justify-center" style={{ animationDelay: '1.1s' }}>
+          <a
+            href="#menu"
+            className="px-8 py-4 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+          >
+            Vezi Meniul
+          </a>
+          <a
+            href="#contact"
+            className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:bg-white/10"
+          >
+            Vizitează-ne
+          </a>
+        </div>
+      </div>
+
+      {/* SCROLL INDICATOR */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
+        style={{ opacity: 0, animation: 'fadeInUp 0.7s ease-out 1.5s forwards' }}
+      >
         <a
-          href="#contact"
-          className="inline-block px-8 py-4 bg-white text-amber-900 font-semibold rounded-lg hover:bg-amber-50 transition-colors"
+          href="#footer"
+          className="block text-white/75 hover:text-amber-500 transition-colors duration-300 animate-bounce"
+          aria-label="Scroll în jos"
         >
-          Începe acum
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </a>
       </div>
     </section>

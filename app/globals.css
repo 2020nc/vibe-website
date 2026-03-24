@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* HERO ANIMATIONS */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hero-anim {
+  opacity: 0;
+  animation: fadeInUp 0.7s ease-out forwards;
+}
+
 /* 🌙 DARK MODE - Class Strategy (not media query) */
 @variant dark (&:where(.dark, .dark *));
 
