@@ -24,7 +24,7 @@ export default function HeroStarter() {
         {/* TITLU PRINCIPAL */}
         <h1
           className="hero-anim text-6xl md:text-8xl lg:text-9xl font-bold mb-6 leading-tight"
-          style={{ textShadow: '0 4px 24px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5)', animationDelay: '0.5s' }}
+          style={{ textShadow: '0 4px 24px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5)', animationDelay: '3.4s' }}
         >
           Cafeaua care te trezește
         </h1>
@@ -32,13 +32,13 @@ export default function HeroStarter() {
         {/* SUBTITLU */}
         <p
           className="hero-anim text-6xl md:text-7xl lg:text-8xl font-bold italic mb-8 text-white/80"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)', animationDelay: '0.8s' }}
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)', animationDelay: '3.7s' }}
         >
           Vino pentru aromă, rămâi pentru atmosferă
         </p>
 
         {/* BUTOANE CTA */}
-        <div className="hero-anim flex flex-col sm:flex-row gap-6 justify-center" style={{ animationDelay: '1.1s' }}>
+        <div className="hero-anim flex flex-col sm:flex-row gap-6 justify-center" style={{ animationDelay: '4.0s' }}>
           <a
             href="#menu"
             className="px-8 py-4 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl"
@@ -56,10 +56,10 @@ export default function HeroStarter() {
 
       {/* SCROLL INDICATOR */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
-        style={{ opacity: 0, animation: 'fadeInUp 0.7s ease-out 1.5s forwards' }}
+        style={{ opacity: 0, animation: 'fadeInUp 0.7s ease-out 4.3s forwards' }}
       >
         <a
-          href="#footer"
+          href="#features"
           className="block text-white/75 hover:text-amber-500 transition-colors duration-300 animate-bounce"
           aria-label="Scroll în jos"
         >

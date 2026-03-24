@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
-/* HERO ANIMATIONS */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* Scroll smooth global */
+html {
+  scroll-behavior: smooth;
 }
-.hero-anim {
-  opacity: 0;
-  animation: fadeInUp 0.7s ease-out forwards;
+
+/* Offset 80px pentru navigation bar */
+[id] {
+  scroll-margin-top: 80px;
 }
 
 /* 🌙 DARK MODE - Class Strategy (not media query) */
@@ -239,6 +239,13 @@ button:active, .btn:active {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .hero-anim {
+    opacity: 0;
+    animation: fadeInUp 0.7s ease-out forwards;
   }
 }
 
