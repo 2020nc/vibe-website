@@ -6,7 +6,7 @@
  * Doar HTML + Tailwind CSS = fundația de bază.
  */
 
-export default function HeroStarter() {
+export default function HeroStarter({ showHoliday = false }: { showHoliday?: boolean }) {
   return (
     <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
       <video
@@ -45,6 +45,14 @@ export default function HeroStarter() {
           >
             Vezi Meniul
           </a>
+          {showHoliday && (
+            <a
+              href="#sarbatori"
+              className="px-8 py-4 bg-rose-500 hover:bg-rose-400 text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+            >
+              🎉 Meniu Sărbătoare
+            </a>
+          )}
           <a
             href="#contact"
             className="px-8 py-4 bg-transparent border-2 border-white text-white font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:bg-white/10"
