@@ -61,10 +61,11 @@ export default function RezervariPage() {
       .from('rezervari')
       .insert([{ ...form, status: 'în așteptare' }]);
 
+    console.log('Supabase insert result:', supabaseError);
     setLoading(false);
 
     if (supabaseError) {
-      setError('A apărut o eroare. Te rugăm să încerci din nou.');
+      setError(`Eroare: ${supabaseError.message}`);
     } else {
       setSuccess(true);
       setForm(initialForm);
