@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import FooterStarter from '@/components/FooterStarter';
 
 interface FormData {
@@ -36,7 +36,7 @@ export default function RezervariPage() {
   const [rezervari, setRezervari] = useState<any[]>([]);
 
   const fetchRezervari = async () => {
-    const { data } = await supabase
+    const { data } = await getSupabase()
       .from('rezervari')
       .select('*')
       .order('created_at', { ascending: false });
@@ -57,7 +57,7 @@ export default function RezervariPage() {
     setLoading(true);
     setError('');
 
-    const { error: supabaseError } = await supabase
+    const { error: supabaseError } = await getSupabase()
       .from('rezervari')
       .insert([{ ...form, status: 'în așteptare' }]);
 

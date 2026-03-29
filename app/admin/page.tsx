@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 type Status = 'în așteptare' | 'confirmat' | 'respins';
 
@@ -38,7 +38,7 @@ export default function AdminPage() {
 
   const fetchRezervari = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('rezervari')
       .select('*')
       .order('created_at', { ascending: false });
