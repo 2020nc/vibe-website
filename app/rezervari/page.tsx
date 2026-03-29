@@ -59,7 +59,7 @@ export default function RezervariPage() {
 
     const { error: supabaseError } = await supabase
       .from('rezervari')
-      .insert([{ ...form, status: 'pending' }]);
+      .insert([{ ...form, status: 'în așteptare' }]);
 
     setLoading(false);
 
