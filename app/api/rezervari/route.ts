@@ -1,12 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export type RezervareStatus = 'în așteptare' | 'confirmat' | 'respins';
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 // PATCH /api/rezervari — schimbă statusul unei rezervări
 // Body: { id: string, status: RezervareStatus }
@@ -22,7 +24,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: `Status invalid. Valori permise: ${statusuriPermise.join(', ')}` }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('rezervari')
     .update({ status })
     .eq('id', id);
@@ -43,7 +45,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Lipsește câmpul id.' }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from('rezervari')
     .delete()
     .eq('id', id);
