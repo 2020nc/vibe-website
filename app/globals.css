@@ -1,5 +1,48 @@
 @import "tailwindcss";
 
+/* 🎉 HOLIDAY MENU — animație preț tăiat */
+@keyframes strikethrough {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.5); }
+  70%  { transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.price-strike {
+  position: relative;
+  display: inline-block;
+}
+.price-strike::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2px;
+  width: 0%;
+  background-color: #ef4444;
+  animation: strikethrough 1.2s ease-out forwards;
+  animation-delay: var(--strike-delay, 0.3s);
+}
+
+.price-new {
+  opacity: 0;
+  animation: popIn 0.4s ease-out forwards;
+  animation-delay: var(--pop-delay, 0.9s);
+}
+
+/* Scroll smooth global */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset 80px pentru navigation bar */
+[id] {
+  scroll-margin-top: 80px;
+}
+
 /* 🌙 DARK MODE - Class Strategy (not media query) */
 @variant dark (&:where(.dark, .dark *));
 
@@ -229,6 +272,13 @@ button:active, .btn:active {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .hero-anim {
+    opacity: 0;
+    animation: fadeInUp 0.7s ease-out forwards;
   }
 }
 

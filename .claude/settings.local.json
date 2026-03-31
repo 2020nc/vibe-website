@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(gh repo:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "WebSearch",
+      "WebFetch(domain:www.pexels.com)",
+      "WebFetch(domain:mixkit.co)",
+      "WebFetch(domain:assets.mixkit.co)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000/_next/static/css/app/layout.css)",
+      "Bash(curl -s \"http://localhost:3000/_next/static/chunks/%5Broot-of-the-server%5D__0p3kcd.._.css\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:3000?preview=true\")",
+      "Bash(vercel --version)",
+      "Bash(vercel --prod)",
+      "Bash(vercel --prod --yes)",
+      "Bash(vercel --prod --yes --name vibe-website2)",
+      "Bash(pandoc --version)",
+      "Bash(node -e \"require\\(''docx''\\)\")",
+      "Bash(npm list:*)",
+      "Bash(node --experimental-vm-modules generate-recap.mjs)",
+      "Bash(node generate-recap.mjs)",
+      "Bash(docx-pdf Recapitulare-25-Martie-2026.docx Recapitulare-25-Martie-2026.pdf)",
+      "Bash(node generate-pdf.mjs)",
+      "Bash(rm generate-recap.mjs generate-pdf.mjs)",
+      "Bash(ls *.docx *.pdf)",
+      "Bash(npm --version)",
+      "Bash(scoop --version)",
+      "Bash(winget --version)",
+      "Bash(supabase --version)",
+      "Bash(node scripts/seed-rezervari.mjs)",
+      "Bash(node -e \"require\\(''xlsx''\\)\")",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

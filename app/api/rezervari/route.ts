@@ -1,142 +1,58 @@
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { name, email, phone, guests, date, time } = body;
+export type RezervareStatus = 'în așteptare' | 'confirmat' | 'respins';
 
-    // Validare câmpuri obligatorii
-    if (!name || !email || !phone || !guests || !date || !time) {
-      return NextResponse.json(
-        { error: 'Toate câmpurile sunt obligatorii.' },
-        { status: 400 }
-      );
-    }
-
-    // Salvare în Supabase
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('rezervari')
-      .insert([{ name, email, phone, guests: Number(guests), date, time }])
-      .select();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Eroare la salvarea rezervării. Încearcă din nou.' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: 'Rezervare salvată cu succes!', data },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Eroare de server. Încearcă din nou.' },
-      { status: 500 }
-    );
-  }
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }
 
-export async function GET() {
-  try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('rezervari')
-      .select('*')
-      .order('created_at', { ascending: false });
+// PATCH /api/rezervari — schimbă statusul unei rezervări
+// Body: { id: string, status: RezervareStatus }
+export async function PATCH(req: NextRequest) {
+  const { id, status } = await req.json();
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Eroare la citirea rezervărilor.' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ data }, { status: 200 });
-  } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Eroare de server.' },
-      { status: 500 }
-    );
+  if (!id || !status) {
+    return NextResponse.json({ error: 'Lipsesc câmpurile id sau status.' }, { status: 400 });
   }
+
+  const statusuriPermise: RezervareStatus[] = ['în așteptare', 'confirmat', 'respins'];
+  if (!statusuriPermise.includes(status)) {
+    return NextResponse.json({ error: `Status invalid. Valori permise: ${statusuriPermise.join(', ')}` }, { status: 400 });
+  }
+
+  const { error } = await getSupabase()
+    .from('rezervari')
+    .update({ status })
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { id, status: newStatus } = body;
+// DELETE /api/rezervari — șterge o rezervare
+// Body: { id: string }
+export async function DELETE(req: NextRequest) {
+  const { id } = await req.json();
 
-    if (!id || !newStatus || !['confirmed', 'rejected', 'pending'].includes(newStatus)) {
-      return NextResponse.json(
-        { error: 'ID și status valid sunt obligatorii.' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('rezervari')
-      .update({ status: newStatus })
-      .eq('id', id)
-      .select();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Eroare la actualizarea rezervării.' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ data }, { status: 200 });
-  } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Eroare de server.' },
-      { status: 500 }
-    );
+  if (!id) {
+    return NextResponse.json({ error: 'Lipsește câmpul id.' }, { status: 400 });
   }
-}
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+  const { error } = await getSupabase()
+    .from('rezervari')
+    .delete()
+    .eq('id', id);
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'ID-ul rezervării este obligatoriu.' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = getSupabase();
-    const { error } = await supabase
-      .from('rezervari')
-      .delete()
-      .eq('id', Number(id));
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        { error: 'Eroare la ștergerea rezervării.' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ message: 'Rezervare ștearsă.' }, { status: 200 });
-  } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Eroare de server.' },
-      { status: 500 }
-    );
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  return NextResponse.json({ success: true });
 }

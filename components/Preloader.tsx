@@ -1,94 +1,130 @@
-/**
- * ⏳ PRELOADER - Animație de încărcare cu logo Vibe Coffee
- * MODERN: Fade out elegant când pagina se încarcă
- */
-
 'use client';
 
 import { useEffect, useState } from 'react';
 
 export default function Preloader() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    // Ascunde preloader-ul după ce pagina s-a încărcat
-    const handleLoad = () => {
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 800); // Delay mic pentru experiență mai smooth
-    };
-
-    if (document.readyState === 'complete') {
-      handleLoad();
-    } else {
-      window.addEventListener('load', handleLoad);
-      return () => window.removeEventListener('load', handleLoad);
-    }
+    const timer = setTimeout(() => setHidden(true), 3200);
+    return () => clearTimeout(timer);
   }, []);
 
-  if (!isLoading) return null;
+  if (hidden) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-primary via-primary-dark to-secondary transition-opacity duration-700 ${
-        isLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}
-    >
-      <div className="text-center">
-        {/* LOGO ANIMAT */}
-        <div className="relative">
-          {/* Cerc pulsant în spate */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-32 h-32 bg-white/20 rounded-full animate-ping"></div>
-          </div>
+    <div className="preloader-overlay">
+      <div className="preloader-cup">
+        {/* Ceașcă SVG */}
+        <svg width="120" height="130" viewBox="0 0 120 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Clip path pentru lichidul din ceașcă */}
+          <defs>
+            <clipPath id="cupClip">
+              <path d="M18 40 Q16 95 20 105 Q30 118 60 118 Q90 118 100 105 Q104 95 102 40 Z" />
+            </clipPath>
+          </defs>
 
-          {/* Logo principal */}
-          <div className="relative z-10 animate-bounce-slow">
-            <div className="text-8xl mb-4 filter drop-shadow-2xl">☕</div>
-            <h1
-              className="text-5xl font-bold text-white mb-2"
-              style={{ fontFamily: 'var(--font-playfair)', textShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
-            >
-              Vibe Coffee
-            </h1>
-            <p className="text-white/90 text-lg font-light">Se încarcă...</p>
-          </div>
-        </div>
+          {/* Lichidul care se umple */}
+          <rect
+            x="10" y="0" width="110" height="120"
+            fill="#92400e"
+            clipPath="url(#cupClip)"
+            className="coffee-fill"
+          />
 
-        {/* LOADING BAR */}
-        <div className="mt-12 w-64 mx-auto">
-          <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-white rounded-full animate-loading-bar"></div>
-          </div>
-        </div>
+          {/* Corpul ceștii */}
+          <path
+            d="M18 40 Q16 95 20 105 Q30 118 60 118 Q90 118 100 105 Q104 95 102 40 Z"
+            stroke="white" strokeWidth="3.5" fill="none"
+          />
+
+          {/* Marginea de sus */}
+          <ellipse cx="60" cy="40" rx="42" ry="8" stroke="white" strokeWidth="3.5" fill="none" />
+
+          {/* Toarta */}
+          <path
+            d="M102 55 Q125 55 125 75 Q125 95 102 90"
+            stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"
+          />
+
+          {/* Farfurioara */}
+          <ellipse cx="60" cy="122" rx="52" ry="7" stroke="white" strokeWidth="3" fill="none" />
+
+          {/* Abur 1 */}
+          <path d="M45 28 Q42 18 45 10 Q48 2 45 -5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" className="steam steam-1" />
+          {/* Abur 2 */}
+          <path d="M60 26 Q57 16 60 8 Q63 0 60 -7" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" className="steam steam-2" />
+          {/* Abur 3 */}
+          <path d="M75 28 Q72 18 75 10 Q78 2 75 -5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" className="steam steam-3" />
+        </svg>
+
+        <p className="preloader-text">Se prepară cafeaua...</p>
       </div>
 
-      {/* KEYFRAMES pentru animații custom */}
-      <style jsx>{`
-        @keyframes bounce-slow {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-20px);
-          }
+      <style>{`
+        .preloader-overlay {
+          position: fixed;
+          inset: 0;
+          background: #1a0a00;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          animation: preloaderFadeOut 0.6s ease-out 2.8s forwards;
         }
 
-        @keyframes loading-bar {
-          0% {
-            width: 0%;
-          }
-          100% {
-            width: 100%;
-          }
+        .preloader-cup {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 24px;
         }
 
-        .animate-bounce-slow {
-          animation: bounce-slow 2s ease-in-out infinite;
+        /* Umplerea cu cafea: de jos în sus, durată 2.2s */
+        .coffee-fill {
+          transform-origin: bottom;
+          transform: scaleY(0);
+          animation: fillCup 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
         }
 
-        .animate-loading-bar {
-          animation: loading-bar 1.5s ease-in-out infinite;
+        @keyframes fillCup {
+          from { transform: scaleY(0); }
+          to   { transform: scaleY(1); }
+        }
+
+        /* Abur */
+        .steam {
+          opacity: 0;
+          stroke-dasharray: 30;
+          stroke-dashoffset: 30;
+        }
+        .steam-1 { animation: steamRise 1s ease-out 2s infinite; }
+        .steam-2 { animation: steamRise 1s ease-out 2.3s infinite; }
+        .steam-3 { animation: steamRise 1s ease-out 2.6s infinite; }
+
+        @keyframes steamRise {
+          0%   { opacity: 0; stroke-dashoffset: 30; }
+          30%  { opacity: 1; }
+          100% { opacity: 0; stroke-dashoffset: 0; }
+        }
+
+        /* Text */
+        .preloader-text {
+          color: rgba(255,255,255,0.7);
+          font-size: 16px;
+          letter-spacing: 0.1em;
+          animation: textPulse 1.5s ease-in-out 0.5s infinite alternate;
+        }
+
+        @keyframes textPulse {
+          from { opacity: 0.4; }
+          to   { opacity: 1; }
+        }
+
+        /* Fade out overlay */
+        @keyframes preloaderFadeOut {
+          from { opacity: 1; pointer-events: all; }
+          to   { opacity: 0; pointer-events: none; }
         }
       `}</style>
     </div>

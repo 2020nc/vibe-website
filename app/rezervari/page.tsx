@@ -1,483 +1,348 @@
 'use client';
 
-/**
- * 📅 PAGINA DE REZERVĂRI - Sistem de booking pentru cafenea
- *
- * Pentru cursanți:
- * - 'use client' = componenta interactivă (useState, onClick)
- * - useState = hook pentru state management (datele care se schimbă)
- * - Calendar picker simplu cu zile disponibile
- * - Slot-uri orare pentru a alege timpul vizitei
- */
+import { useState, useEffect } from 'react';
+import { getSupabase } from '@/lib/supabase';
+import FooterStarter from '@/components/FooterStarter';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
+interface FormData {
+  nume: string;
+  email: string;
+  telefon: string;
+  data: string;
+  ora: string;
+  persoane: number;
+  mesaj: string;
+}
 
-export default function RezervarePage() {
-  // 📊 STATE MANAGEMENT
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    guests: '2',
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
+const initialForm: FormData = {
+  nume: '',
+  email: '',
+  telefon: '',
+  data: '',
+  ora: '',
+  persoane: 2,
+  mesaj: '',
+};
 
-  // 📅 GENERARE ZILE DISPONIBILE (următoarele 14 zile)
-  const generateAvailableDates = () => {
-    const dates = [];
-    const today = new Date();
+const ORE = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
+             '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
 
-    for (let i = 0; i < 14; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(date);
-    }
+export default function RezervariPage() {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState<FormData>(initialForm);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [rezervari, setRezervari] = useState<any[]>([]);
 
-    return dates;
+  const fetchRezervari = async () => {
+    const { data } = await getSupabase()
+      .from('rezervari')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setRezervari(data);
   };
 
-  const availableDates = generateAvailableDates();
+  useEffect(() => {
+    fetchRezervari();
+  }, []);
 
-  // ⏰ SLOT-URI ORARE DISPONIBILE
-  const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00',
-    '12:00', '13:00', '14:00', '15:00',
-    '16:00', '17:00', '18:00', '19:00',
-    '20:00', '21:00'
-  ];
-
-  // 📝 FORMAT DATA (ex: Luni, 18 Dec)
-  const formatDate = (date: Date) => {
-    const days = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
-    const months = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
-
-    return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: name === 'persoane' ? Number(value) : value }));
   };
 
-  // 📅 CALENDAR HELPERS
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const maxDate = new Date(today);
-  maxDate.setMonth(maxDate.getMonth() + 6);
-
-  const monthNames = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
-    'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
-  const dayHeaders = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
-
-  const calendarDays = useMemo(() => {
-    const year = calendarMonth.getFullYear();
-    const month = calendarMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-
-    // Luni = 0, Marți = 1, ..., Duminică = 6
-    let startOffset = firstDay.getDay() - 1;
-    if (startOffset < 0) startOffset = 6;
-
-    const days: (Date | null)[] = [];
-    for (let i = 0; i < startOffset; i++) days.push(null);
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      days.push(new Date(year, month, d));
-    }
-    return days;
-  }, [calendarMonth]);
-
-  const canGoPrev = calendarMonth.getFullYear() > today.getFullYear() ||
-    (calendarMonth.getFullYear() === today.getFullYear() && calendarMonth.getMonth() > today.getMonth());
-
-  const canGoNext = calendarMonth < maxDate;
-
-  const handleCalendarSelect = (date: Date) => {
-    setSelectedDate(formatDate(date));
-    setSelectedTime('');
-  };
-
-  const navigateMonth = (direction: -1 | 1) => {
-    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + direction, 1));
-  };
-
-  // 🎯 HANDLE FORM SUBMIT
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     setError('');
 
-    try {
-      const response = await fetch('/api/rezervari', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: selectedDate,
-          time: selectedTime,
-          ...formData,
-        }),
-      });
+    const { error: supabaseError } = await getSupabase()
+      .from('rezervari')
+      .insert([{ ...form, status: 'în așteptare' }]);
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Eroare la trimiterea rezervării.');
-      }
+    console.log('Supabase insert result:', supabaseError);
+    setLoading(false);
 
-      setSubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Eroare la trimiterea rezervării. Încearcă din nou.');
-    } finally {
-      setIsLoading(false);
+    if (supabaseError) {
+      setError(`Eroare: ${supabaseError.message}`);
+    } else {
+      setSuccess(true);
+      setForm(initialForm);
+      setStep(1);
+      fetchRezervari();
     }
   };
 
-  // ✅ ECRAN CONFIRMARE
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6 py-20">
-        <div className="glass max-w-2xl w-full rounded-3xl p-12 text-center">
-          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
+  const resetForm = () => {
+    setSuccess(false);
+    setForm(initialForm);
+    setStep(1);
+  };
 
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Rezervare confirmată!
-          </h1>
-
-          <p className="text-xl text-gray-600 mb-8">
-            Vă așteptăm cu drag la Vibe Coffee
-          </p>
-
-          <div className="glass bg-white/50 rounded-2xl p-6 mb-8 text-left">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Data & Ora</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {selectedDate} la {selectedTime}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Număr persoane</p>
-                <p className="text-lg font-semibold text-foreground">{formData.guests} persoane</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Nume</p>
-                <p className="text-lg font-semibold text-foreground">{formData.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Contact</p>
-                <p className="text-lg font-semibold text-foreground">{formData.phone}</p>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-gray-600 mb-8">
-            Veți primi un email de confirmare la <span className="font-semibold">{formData.email}</span>
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/"
-              className="px-8 py-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-full transition-all duration-300 hover:scale-105"
-            >
-              Înapoi Acasă
-            </Link>
-            <button
-              onClick={() => {
-                setSubmitted(false);
-                setSelectedDate('');
-                setSelectedTime('');
-                setFormData({ name: '', email: '', phone: '', guests: '2' });
-                setError('');
-                setCalendarMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-              }}
-              className="px-8 py-4 bg-secondary hover:bg-secondary-dark text-white font-semibold rounded-full transition-all duration-300 hover:scale-105"
-            >
-              Rezervare nouă
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 📋 FORMULAR REZERVARE
   return (
-    <div className="min-h-screen bg-background py-20 px-6">
-      <div className="max-w-4xl mx-auto">
-        {/* HEADER */}
-        <div className="text-center mb-12">
-          <Link href="/" className="inline-block mb-6 text-primary hover:text-primary-dark transition-colors">
-            ← Înapoi
-          </Link>
-          <h1 className="text-5xl font-bold text-foreground mb-4">
-            Rezervă o <span className="text-primary">masă</span>
-          </h1>
-          <p className="text-xl text-gray-600">
-            Alege data, ora și completează detaliile pentru rezervare
-          </p>
+    <>
+      {/* Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <a href="/" className="text-2xl font-bold text-teal-500">Vibe Caffè</a>
+          <a href="/" className="text-gray-600 hover:text-teal-500 transition-colors">← Înapoi acasă</a>
         </div>
+      </nav>
 
-        <form onSubmit={handleSubmit} className="glass rounded-3xl p-8 md:p-12">
-          {/* STEP 1: SELECTEAZĂ DATA */}
-          <div className="mb-10">
-            <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center">
-              <span className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
-              Selectează data
-            </h2>
+      <main className="min-h-screen bg-gray-50 pt-24 pb-16 px-6">
+        <div className="max-w-2xl mx-auto">
 
-            {/* MINI-CALENDAR */}
-            <div className="bg-white rounded-2xl border-2 border-gray-100 p-4 md:p-6 mb-6">
-              {/* Header: < Luna An > */}
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  type="button"
-                  onClick={() => navigateMonth(-1)}
-                  disabled={!canGoPrev}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <h3 className="text-lg font-bold text-foreground">
-                  {monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => navigateMonth(1)}
-                  disabled={!canGoNext}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
+          {/* Titlu */}
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Rezervă o masă</h1>
+            <p className="text-lg text-gray-600">Completează formularul și te confirmăm în cel mai scurt timp.</p>
+          </div>
 
-              {/* Day headers */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {dayHeaders.map(d => (
-                  <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">
-                    {d}
+          {/* Success */}
+          {success && (
+            <div className="mb-8 p-6 bg-teal-50 border border-teal-200 rounded-2xl text-center">
+              <div className="text-4xl mb-3">☕</div>
+              <h2 className="text-xl font-bold text-teal-700 mb-2">Rezervare trimisă!</h2>
+              <p className="text-teal-600">Te vom contacta în curând pentru confirmare.</p>
+              <button
+                onClick={resetForm}
+                className="mt-4 px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-full transition-colors"
+              >
+                Rezervare nouă
+              </button>
+            </div>
+          )}
+
+          {/* Formular multi-step */}
+          {!success && (
+            <div className="bg-white rounded-3xl shadow-lg p-8">
+
+              {/* Progress indicator */}
+              <div className="flex items-center justify-center gap-4 mb-8">
+                {[
+                  { nr: 1, label: 'Data' },
+                  { nr: 2, label: 'Ora' },
+                  { nr: 3, label: 'Detalii' },
+                ].map(({ nr, label }, i) => (
+                  <div key={nr} className="flex items-center gap-4">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                        step > nr ? 'bg-teal-500 text-white' :
+                        step === nr ? 'bg-teal-500 text-white ring-4 ring-teal-100' :
+                        'bg-gray-100 text-gray-400'
+                      }`}>
+                        {step > nr ? '✓' : nr}
+                      </div>
+                      <span className={`text-xs font-medium ${step === nr ? 'text-teal-600' : 'text-gray-400'}`}>
+                        {label}
+                      </span>
+                    </div>
+                    {i < 2 && (
+                      <div className={`w-16 h-0.5 mb-5 transition-all duration-300 ${step > nr ? 'bg-teal-500' : 'bg-gray-200'}`} />
+                    )}
                   </div>
                 ))}
               </div>
 
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((date, i) => {
-                  if (!date) {
-                    return <div key={`empty-${i}`} />;
-                  }
+              <form onSubmit={handleSubmit} className="space-y-6">
 
-                  const isPast = date < today;
-                  const isTooFar = date > maxDate;
-                  const isDisabled = isPast || isTooFar;
-                  const isSelected = selectedDate === formatDate(date);
-                  const isToday = date.getTime() === today.getTime();
-
-                  return (
+                {/* Pasul 1 — Data */}
+                {step === 1 && (
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Când vrei să vii?</h2>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Alege data *</label>
+                    <input
+                      type="date"
+                      name="data"
+                      value={form.data}
+                      onChange={handleChange}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 transition text-lg"
+                    />
                     <button
-                      key={date.getDate()}
                       type="button"
-                      disabled={isDisabled}
-                      onClick={() => handleCalendarSelect(date)}
-                      className={`aspect-square rounded-lg text-sm font-semibold transition-all duration-200
-                        ${isSelected
-                          ? 'bg-primary text-white shadow-md scale-110'
-                          : isToday
-                            ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                            : isDisabled
-                              ? 'text-gray-300 cursor-not-allowed'
-                              : 'text-gray-700 hover:bg-gray-100'
-                        }`}
+                      disabled={!form.data}
+                      onClick={() => setStep(2)}
+                      className="mt-6 w-full py-4 bg-teal-500 hover:bg-teal-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] disabled:hover:scale-100"
                     >
-                      {date.getDate()}
+                      Continuă →
                     </button>
-                  );
-                })}
-              </div>
-            </div>
+                  </div>
+                )}
 
-            {/* Separator */}
-            <p className="text-sm text-gray-400 text-center mb-4">sau alege rapid din următoarele zile:</p>
-
-            {/* BUTOANE RAPIDE (păstrate exact cum erau) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {availableDates.map((date, index) => {
-                const dateStr = formatDate(date);
-                const isSelected = selectedDate === dateStr;
-
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setSelectedDate(dateStr)}
-                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                      isSelected
-                        ? 'border-primary bg-primary text-white shadow-lg scale-105'
-                        : 'border-gray-200 bg-white hover:border-primary hover:scale-105'
-                    }`}
-                  >
-                    <div className={`text-xs ${isSelected ? 'text-white/80' : 'text-gray-500'} mb-1`}>
-                      {date.toLocaleDateString('ro-RO', { weekday: 'short' })}
+                {/* Pasul 2 — Ora */}
+                {step === 2 && (
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">La ce oră?</h2>
+                    <div className="grid grid-cols-4 gap-3">
+                      {ORE.map(h => (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => { setForm(prev => ({ ...prev, ora: h })); }}
+                          className={`py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
+                            form.ora === h
+                              ? 'bg-teal-500 text-white ring-2 ring-teal-300 scale-105'
+                              : 'bg-gray-100 text-gray-700 hover:bg-teal-50 hover:text-teal-600'
+                          }`}
+                        >
+                          {h}
+                        </button>
+                      ))}
                     </div>
-                    <div className={`text-2xl font-bold ${isSelected ? 'text-white' : 'text-foreground'}`}>
-                      {date.getDate()}
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg rounded-xl transition-all"
+                      >
+                        ← Înapoi
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!form.ora}
+                        onClick={() => setStep(3)}
+                        className="flex-1 py-4 bg-teal-500 hover:bg-teal-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-lg rounded-xl transition-all duration-300 hover:scale-[1.02] disabled:hover:scale-100"
+                      >
+                        Continuă →
+                      </button>
                     </div>
-                    <div className={`text-xs ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
-                      {date.toLocaleDateString('ro-RO', { month: 'short' })}
+                  </div>
+                )}
+
+                {/* Pasul 3 — Detalii */}
+                {step === 3 && (
+                  <div className="space-y-5">
+                    <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">Datele tale</h2>
+
+                    {/* Rezumat alegeri */}
+                    <div className="bg-teal-50 rounded-xl px-4 py-3 text-sm text-teal-700 text-center font-medium">
+                      {form.data} · {form.ora}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* STEP 2: SELECTEAZĂ ORA */}
-          {selectedDate && (
-            <div className="mb-10">
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center">
-                <span className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
-                Selectează ora
-              </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Nume complet *</label>
+                        <input
+                          type="text"
+                          name="nume"
+                          value={form.nume}
+                          onChange={handleChange}
+                          required
+                          placeholder="Ion Popescu"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={form.email}
+                          onChange={handleChange}
+                          required
+                          placeholder="ion@email.com"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
+                        />
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
-                {timeSlots.map((time) => {
-                  const isSelected = selectedTime === time;
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Telefon *</label>
+                        <input
+                          type="tel"
+                          name="telefon"
+                          value={form.telefon}
+                          onChange={handleChange}
+                          required
+                          placeholder="07xx xxx xxx"
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Număr persoane *</label>
+                        <select
+                          name="persoane"
+                          value={form.persoane}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 transition bg-white"
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                            <option key={n} value={n}>{n} {n === 1 ? 'persoană' : 'persoane'}</option>
+                          ))}
+                          <option value={15}>Grup 11-15</option>
+                          <option value={20}>Grup 16-20</option>
+                        </select>
+                      </div>
+                    </div>
 
-                  return (
-                    <button
-                      key={time}
-                      type="button"
-                      onClick={() => setSelectedTime(time)}
-                      className={`p-3 rounded-xl border-2 font-semibold transition-all duration-300 ${
-                        isSelected
-                          ? 'border-primary bg-primary text-white shadow-lg scale-105'
-                          : 'border-gray-200 bg-white hover:border-primary hover:scale-105'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Mesaj / Cerințe speciale</label>
+                      <textarea
+                        name="mesaj"
+                        value={form.mesaj}
+                        onChange={handleChange}
+                        rows={3}
+                        placeholder="Ex: aniversare, loc la fereastră, alergii..."
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 transition resize-none"
+                      />
+                    </div>
 
-          {/* STEP 3: DETALII PERSONALE */}
-          {selectedDate && selectedTime && (
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center">
-                <span className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm mr-3">3</span>
-                Detalii rezervare
-              </h2>
+                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* NUME */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Nume complet *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
-                    placeholder="Ion Popescu"
-                  />
-                </div>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setStep(2)}
+                        className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-lg rounded-xl transition-all"
+                      >
+                        ← Înapoi
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 py-4 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-300 text-white font-semibold text-lg rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                      >
+                        {loading ? 'Se trimite...' : 'Rezervă acum ☕'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-                {/* EMAIL */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
-                    placeholder="ion@example.com"
-                  />
-                </div>
-
-                {/* TELEFON */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Telefon *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
-                    placeholder="0712 345 678"
-                  />
-                </div>
-
-                {/* NUMĂR PERSOANE */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Număr persoane *
-                  </label>
-                  <select
-                    required
-                    value={formData.guests}
-                    onChange={(e) => setFormData({ ...formData, guests: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                      <option key={num} value={num}>
-                        {num} {num === 1 ? 'persoană' : 'persoane'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              </form>
             </div>
           )}
-
-          {/* ERROR MESSAGE */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-center">
-              {error}
-            </div>
-          )}
-
-          {/* SUBMIT BUTTON */}
-          {selectedDate && selectedTime && (
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-4 bg-primary hover:bg-primary-dark text-white font-bold text-lg rounded-full transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              {isLoading ? 'Se trimite...' : 'Confirmă rezervarea'}
-            </button>
-          )}
-        </form>
-
-        {/* INFO FOOTER */}
-        <div className="mt-8 text-center text-gray-600">
-          <p className="mb-2">
-            <span className="font-semibold">Program:</span> Luni - Duminică, 08:00 - 22:00
-          </p>
-          <p>
-            <span className="font-semibold">Contact:</span> 0721 234 567 | rezervari@vibecoffee.ro
-          </p>
         </div>
-      </div>
-    </div>
+      </main>
+
+      {/* Lista rezervari */}
+      <section className="max-w-4xl mx-auto px-6 pb-16">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Toate rezervările ({rezervari.length})</h2>
+        <div className="space-y-3">
+          {rezervari.map((r) => (
+            <div key={r.id} className="bg-white rounded-2xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div>
+                <p className="font-semibold text-gray-900">{r.nume}</p>
+                <p className="text-sm text-gray-500">{r.email} · {r.telefon}</p>
+              </div>
+              <div className="text-sm text-gray-600">
+                {r.data} la {r.ora} · {r.persoane} {r.persoane === 1 ? 'persoană' : 'persoane'}
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold w-fit ${
+                r.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                r.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                'bg-yellow-100 text-yellow-700'
+              }`}>
+                {r.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <FooterStarter />
+    </>
   );
 }

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(node scripts/recap-lectia2-modulul3.mjs)",
+      "Read(//c/Windows/Fonts/**)",
+      "Bash(curl -s \"https://uevakhbqxujzqimaoytx.supabase.co/rest/v1/rezervari?select=id,nume,status&limit=5\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVldmFraGJxeHVqenFpbWFveXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NzY0NzgsImV4cCI6MjA5MDM1MjQ3OH0.ilNOb2gqM0uftuouBVBO9PcDphm0TzQWJVln98-BpIM\")",
+      "Bash(node -e \":*)",
+      "Bash(node -e \"require\\(''pdfkit''\\)\")"
+    ],
+    "additionalDirectories": [
+      "k:\\Video-Prelucrat\\Vibe Coding\\Proiect_01\\app\\api",
+      "C:\\Users\\Admin\\.claude"
+    ]
+  }
+}
