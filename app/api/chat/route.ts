@@ -10,10 +10,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { VIBE_COFFEE_KNOWLEDGE, BOT_PERSONALITY } from '@/lib/knowledge-base';
 
-// Inițializare OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Inițializare OpenAI client (lazy — evită eroare la build fără OPENAI_API_KEY)
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 // 📚 SYSTEM PROMPT - Definește personalitatea și cunoștințele bot-ului
 const SYSTEM_PROMPT = `Tu esti Vibe, barista virtuala la Vibe Coffee.
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     ];
 
     // API Call către OpenAI
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages,
       temperature: 0.8, // Creativitate moderată
